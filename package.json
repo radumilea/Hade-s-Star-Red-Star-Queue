@@ -8,8 +8,8 @@
     "dev": "nodemon ./src/bot.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "MIT",
+  "author": "Radu Milea <radu.milea.d@gmail.com>",
+  "license": "BSD 3-Clause 'New' or 'Revised' License",
   "dependencies": {
     "discord.js": "^12.5.1",
     "dotenv": "^8.2.0"
