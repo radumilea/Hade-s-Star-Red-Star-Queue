@@ -1,10 +1,12 @@
 require("dotenv").config();
 const Discord = require('discord.js')
 
-const PREFIX = '!';
+const PREFIX = '!!';
 const EMOJI_JOIN = '⚔️';
 const EMOJI_CANCEL = '❌';
+const EMPTY_SLOT_SYMBOL = '-';
 
+const Q_TIMEOUT_T = 1000 * 60 * 60;
 const Q_SLOT_1 = 0;
 const Q_SLOT_2 = 1;
 const Q_SLOT_3 = 2;
@@ -15,28 +17,31 @@ const client = new Discord.Client({
 });
 
 client.on('ready', () => {
-  console.log(`${client.user.tag} has logged in.`);
+  logger('Init', `${client.user.tag} has logged in.`);
 });
 
-
 client.on('message', async (message) => {
+  // ignore messages made by bots
   if (message.author.bot) return;
+  // validate prefix & extarct args
   if (message.content.startsWith(PREFIX)) {
     const [CMD_NAME, ...args] = message.content
       .trim()
       .substring(PREFIX.length)
       .split(/\s+/);
     if (CMD_NAME === 'curcubeu') {
+      // check game mod
       if (args.length === 0) {
         tipsMessage(message, 'Te rog sa alegi un tip de joc. Tipuri de joc disponibile: RS');
         return;
       } else {
-        console.log('args',args);
         const command = args[0].toUpperCase();
         if(command === 'RS') {
+          // do red star
           if (args[1]) {
             const redStarLvl = parseInt(args[1]);
-            if (Number.isInteger(redStarLvl) && redStarLvl >= 1 && redStarLvl <= 11) {
+            // check if red star lvl is valid
+            if (Number.isInteger(redStarLvl) && redStarLvl >= 3 && redStarLvl <= 11) {
               doRedStar(message, redStarLvl);
             } else {
               return invalidRedStarLvl(message);
@@ -54,71 +59,35 @@ function invalidRedStarLvl(message) {
   return tipsMessage(message, 'Te rog sa adaugi lvl-ul red star-ului.');
 }
 
-
 const reactionFilter = reaction => {
   return reaction.emoji.name === EMOJI_JOIN || reaction.emoji.name === EMOJI_CANCEL;
 }
 
 async function doRedStar(message, redStarLevel) {
-  console.log(`[RedStar Search] ${message.author.username} - RS ${redStarLevel}`);
+  logger('RedStar Search', `${message.author.username} - RS ${redStarLevel}`);
 
-  await message.channel.send(`@everyone, ${message.author} cauta oameni pentru **RS${redStarLevel}!**\nTara, tara, vrem ostasi\n*Cautarea se inchide automat in 1h.`);
+  // send Q message
+  const sendEmbedIntro = await message.channel.send(buildQMessageIntro(message, redStarLevel));
+  const sendEmbed = message.channel.send(buildQMessage(message, redStarLevel));
+  logger('Q', `${message.author.username} - RS ${redStarLevel} | Send embed`);
 
-  const embed = new Discord.MessageEmbed()
-    .setTitle(`[Search] Red Star LVL ${redStarLevel}`)
-    .setColor(`#00A3E0`)
-    .setAuthor(message.author.username)
-    .setTimestamp()
-    .setThumbnail('https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fjupiter.png?alt=media&token=fd26f1cf-1cbb-45ea-a3d9-99fd34fb4a82')
-    .setFooter('Curcubeu / CurcubeuAcademy')
-    .addFields(
-      {
-        name: 'Slot 1',
-        value: `<@${message.author.id}>`,
-        inline: false,
-      },
-      {
-        name: 'Slot 2',
-        value: '-',
-        inline: false,
-      },
-      // {
-      //   name: '\u200B',
-      //   value: '\u200B',
-      //   inline: true,
-      // },
-      {
-        name: 'Slot 3',
-        value: '-',
-        inline: false,
-      },
-      {
-        name: 'Slot 4',
-        value: '-',
-        inline: false,
-      },
-      {
-        name: '\u200B',
-        value: `Reactioneaza cu ${EMOJI_JOIN} pentru a da join. \nReactioneaza cu ${EMOJI_CANCEL} pentru a inchide cautarea (owner only).`,
-        inline: false,
-      },
-    );
-  // message.react('🏳️‍🌈');
-  const sendEmbed = message.channel.send(embed);
   sendEmbed.then((searchMessage) => {
     // cache embed
     let currentEmbed = searchMessage.embeds[0];
     
-    // delete q after 1h
+    // delete Q after 1h
     let QAutoDestroy = setTimeout(() => {
+      sendEmbedIntro.delete({ timeout: 1 });
       searchMessage.delete({ timeout: 1 });
       sendQAutoDestroyMessage(message, currentEmbed, redStarLevel);
-    }, 1000 * 60 * 60);
+      logger('Q', `${message.author.username} - RS ${redStarLevel} | Destroy Q on timeout`);
+    }, Q_TIMEOUT_T);
 
-    // add reactions to search post
+    // add reactions to Q embed
     searchMessage.react(EMOJI_JOIN);
     searchMessage.react(EMOJI_CANCEL);
 
+    // init reaction watcher
     const reactionCollector = new Discord.ReactionCollector(searchMessage, reactionFilter, { dispose: true });
     reactionCollector.on('collect', (reaction, user) => {
       // ignore reactions made by bots
@@ -131,19 +100,24 @@ async function doRedStar(message, redStarLevel) {
       if (reaction.emoji.name === EMOJI_JOIN && !isQAuth) {
         currentEmbed = addPlayerToQAdnReturnNewEmbed(searchMessage, currentEmbed, user);
         searchMessage.edit(currentEmbed);
+        logger('Q', `${message.author.username} - RS ${redStarLevel} | Add ${user.username} to Q`);
 
         // Check if game is rdy
         if (isRsQRdy(currentEmbed)) {
           clearTimeout(QAutoDestroy);
+          sendEmbedIntro.delete({ timeout: 1 });
           searchMessage.delete({ timeout: 1 });
           sendRsReadyMessage(message, currentEmbed, redStarLevel);
+          logger('Q', `${message.author.username} - RS ${redStarLevel} | Q is rdy`);
         }
       }
 
       if (reaction.emoji.name === EMOJI_CANCEL && isQAuth) {
         clearTimeout(QAutoDestroy);
+        sendEmbedIntro.delete({ timeout: 1 });
         searchMessage.delete({ timeout: 1 });
         sendCancelQMessage(message, currentEmbed, redStarLevel);
+        logger('Q', `${message.author.username} - RS ${redStarLevel} | Delete Q`);
       }
     });
 
@@ -158,6 +132,7 @@ async function doRedStar(message, redStarLevel) {
       if (reaction.emoji.name === EMOJI_JOIN && !isQAuth) {
         currentEmbed = removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user);
         searchMessage.edit(currentEmbed);
+        logger('Q', `${message.author.username} - RS ${redStarLevel} | Remove ${user.username} from Q`);
       }
     });
   });  
@@ -184,13 +159,13 @@ function removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user) {
 
   const { fields } = currentEmbed;
   if (fields[Q_SLOT_1].value === username) {
-    fields[Q_SLOT_1].value = '-';
+    fields[Q_SLOT_1].value = EMPTY_SLOT_SYMBOL;
   } else if (fields[Q_SLOT_2].value === username) {
-    fields[Q_SLOT_2].value = '-';
+    fields[Q_SLOT_2].value = EMPTY_SLOT_SYMBOL;
   } else if (fields[Q_SLOT_3].value === username) {
-    fields[Q_SLOT_3].value = '-';
+    fields[Q_SLOT_3].value = EMPTY_SLOT_SYMBOL;
   } else if (fields[Q_SLOT_4].value === username) {
-    fields[Q_SLOT_4].value = '-';
+    fields[Q_SLOT_4].value = EMPTY_SLOT_SYMBOL;
   }
 
   newEmbed.fields = fields;
@@ -198,65 +173,58 @@ function removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user) {
 }
 
 function sendQAutoDestroyMessage(message, embed, redStarLevel) {
+  let text = `Timpul de cautare pentru RS ${redStarLevel} a expirat!  \n`;
+  
   const { fields } = embed;
-
-  let text = `Timpul de cautare pentru RS${redStarLevel} a expirat!  \n`;
-
-  if (fields[Q_SLOT_1].value !== '-') {
+  if (fields[Q_SLOT_1].value !== EMPTY_SLOT_SYMBOL) {
     text += fields[Q_SLOT_1].value;
   }
-  if (fields[Q_SLOT_2].value !== '-') {
+  if (fields[Q_SLOT_2].value !== EMPTY_SLOT_SYMBOL) {
     text += ', ' + fields[Q_SLOT_2].value;
   }
-  if (fields[Q_SLOT_3].value !== '-') {
+  if (fields[Q_SLOT_3].value !== EMPTY_SLOT_SYMBOL) {
     text += ', ' + fields[Q_SLOT_3].value;
   }
-  if (fields[Q_SLOT_4].value !== '-') {
+  if (fields[Q_SLOT_4].value !== EMPTY_SLOT_SYMBOL) {
     text += ', ' + fields[Q_SLOT_4].value;
   }
-
-
   message.channel.send(text);
 }
 
 function sendCancelQMessage(message, embed, redStarLevel) {
   const { fields } = embed;
-
   let text = '';
-  console.log('text1', text);
   hasPlayers = false;
 
-  if (fields[Q_SLOT_2].value !== '-') {
+  if (fields[Q_SLOT_2].value !== EMPTY_SLOT_SYMBOL) {
     text += fields[Q_SLOT_2].value;
     hasPlayers = true;
   }
-  if (fields[Q_SLOT_3].value !== '-') {
+  if (fields[Q_SLOT_3].value !== EMPTY_SLOT_SYMBOL) {
     text += ', ' + fields[Q_SLOT_3].value;
     hasPlayers = true;
   }
-  if (fields[Q_SLOT_4].value !== '-') {
+  if (fields[Q_SLOT_4].value !== EMPTY_SLOT_SYMBOL) {
     text += ', ' + fields[Q_SLOT_4].value;
     hasPlayers = true;
   }
-
   if (hasPlayers) {
     text += ': ';
   }
 
   text += `${fields[Q_SLOT_1].value} a inchis cautarea pentru RS${redStarLevel}!`; 
-  console.log('text', text);
   message.channel.send(text);
 }
 
 function sendRsReadyMessage(message, embed, redStarLevel) {
   const { fields } = embed;
-  const text = `Tara, tara, avem ostasi! \n ${fields[Q_SLOT_1].value}, ${fields[Q_SLOT_2].value}, ${fields[Q_SLOT_3].value}, ${fields[Q_SLOT_4].value}, sunteti pregatiti sa incepem RS${redStarLevel} ?`; 
+  const text = `Tara, tara, avem ostasi! \n${fields[Q_SLOT_1].value}, ${fields[Q_SLOT_2].value}, ${fields[Q_SLOT_3].value}, ${fields[Q_SLOT_4].value}, sunteti pregatiti sa incepem RS${redStarLevel} ?`; 
   message.channel.send(text);
 }
 
 function isRsQRdy(embed) {
   const { fields } = embed;
-  if (fields[Q_SLOT_1].value !== '-' && fields[Q_SLOT_2].value !== '-' && fields[Q_SLOT_3].value !== '-' && fields[Q_SLOT_4].value !== '-') {
+  if (fields[Q_SLOT_1].value !== EMPTY_SLOT_SYMBOL && fields[Q_SLOT_2].value !== EMPTY_SLOT_SYMBOL && fields[Q_SLOT_3].value !== EMPTY_SLOT_SYMBOL && fields[Q_SLOT_4].value !== EMPTY_SLOT_SYMBOL) {
     return true;
   } else {
     return false;
@@ -268,18 +236,63 @@ function addPlayerToQAdnReturnNewEmbed(message, currentEmbed, user) {
   const username = `<@${user.id}>`;
 
   const { fields } = currentEmbed;
-  if (fields[Q_SLOT_1].value === '-') {
+  if (fields[Q_SLOT_1].value === EMPTY_SLOT_SYMBOL) {
     fields[Q_SLOT_1].value = username;
-  } else if (fields[Q_SLOT_2].value === '-') {
+  } else if (fields[Q_SLOT_2].value === EMPTY_SLOT_SYMBOL) {
     fields[Q_SLOT_2].value = username;
-  } else if (fields[Q_SLOT_3].value === '-') {
+  } else if (fields[Q_SLOT_3].value === EMPTY_SLOT_SYMBOL) {
     fields[Q_SLOT_3].value = username;
-  } else if (fields[Q_SLOT_4].value === '-') {
+  } else if (fields[Q_SLOT_4].value === EMPTY_SLOT_SYMBOL) {
     fields[Q_SLOT_4].value = username;
   }
 
   newEmbed.fields = fields;
   return newEmbed;
+}
+
+function logger(zone, message) {
+  console.log(`[${zone}] ${message}`);
+}
+
+function buildQMessage(message, redStarLevel) {
+  return new Discord.MessageEmbed()
+  .setTitle(`[Search] Red Star LVL ${redStarLevel}`)
+  .setColor(`#00A3E0`)
+  .setAuthor(message.author.username)
+  .setTimestamp()
+  .setThumbnail('https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fjupiter.png?alt=media&token=fd26f1cf-1cbb-45ea-a3d9-99fd34fb4a82')
+  .setFooter('Curcubeu / CurcubeuAcademy')
+  .addFields(
+    {
+      name: 'Slot 1',
+      value: `<@${message.author.id}>`,
+      inline: false,
+    },
+    {
+      name: 'Slot 2',
+      value: EMPTY_SLOT_SYMBOL,
+      inline: false,
+    },
+    {
+      name: 'Slot 3',
+      value: EMPTY_SLOT_SYMBOL,
+      inline: false,
+    },
+    {
+      name: 'Slot 4',
+      value: EMPTY_SLOT_SYMBOL,
+      inline: false,
+    },
+    {
+      name: '\u200B',
+      value: `*Reactioneaza cu ${EMOJI_JOIN} pentru a da join. \n*Reactioneaza cu ${EMOJI_CANCEL} pentru a inchide cautarea (owner only).`,
+      inline: false,
+    },
+  );
+}
+
+function buildQMessageIntro(message, redStarLevel) {
+  return `@everyone, ${message.author} cauta oameni pentru **RS${redStarLevel}!**\nTara, tara, vrem ostasi\n*Cautarea se inchide automat in 1h.`;
 }
 
 client.login(process.env.DISCORDJS_BOT_TOKEN);
