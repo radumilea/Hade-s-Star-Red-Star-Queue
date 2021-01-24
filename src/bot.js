@@ -1,7 +1,7 @@
 require("dotenv").config();
 const Discord = require('discord.js')
 
-const PREFIX = '!!';
+const PREFIX = '!';
 const EMOJI_JOIN = '⚔️';
 const EMOJI_CANCEL = '❌';
 const EMPTY_SLOT_SYMBOL = '-';
@@ -32,7 +32,16 @@ client.on('message', async (message) => {
     if (CMD_NAME === 'curcubeu') {
       // check game mod
       if (args.length === 0) {
-        tipsMessage(message, 'Te rog sa alegi un tip de joc. Tipuri de joc disponibile: RS');
+        tipsMessage(message, `
+Pentru a continua este necesar să alegi un tip de joc. Tipuri de joc diponibile: \`RS\` (Red Star)
+
+**Red Star Search**
+Pentru a anunța un RS este necesar să folosești comanda \`!curcubeu\` la care să adaugi tipul de joc (RS) și RS lvl-ul dorit (LVLe RS disponibile: 3,4,5,6,7,8,9,10,11)
+
+Comandă: \`!curcubeu RS <RS LVL>\`
+Exemplu pentru Red Star lvl 3: \`!curcubeu RS 3\`
+Exemplu pentru Red Star lvl 7: \`!curcubeu RS 7\`
+        `, 0);
         return;
       } else {
         const command = args[0].toUpperCase();
@@ -49,6 +58,21 @@ client.on('message', async (message) => {
           } else {
             return invalidRedStarLvl(message);
           }
+        } else {
+          // display invalid mode
+tipsMessage(message, `
+**Tipul de joc nu este corect!**
+Tipuri de joc diponibile: \`RS\` (Red Star)
+
+**Red Star Search**
+Pentru a anunța un RS este necesar să folosești comanda \`!curcubeu\` la care să adaugi tipul de joc (\`RS\`) și RS lvl-ul dorit (\`3,4,5,6,7,8,9,10 sau 11\`)
+
+Comandă: \`!curcubeu RS <RS LVL>\`
+Exemplu pentru Red Star lvl 3: \`!curcubeu RS 3\`
+Exemplu pentru Red Star lvl 7: \`!curcubeu RS 7\`
+
+* *mesajul se autodistruge în 3 minute*
+`, 3, true);
         }
       } 
     } 
@@ -56,7 +80,17 @@ client.on('message', async (message) => {
 });
 
 function invalidRedStarLvl(message) {
-  return tipsMessage(message, 'Te rog sa adaugi lvl-ul red star-ului.');
+  return tipsMessage(message, `
+**LVL-ul Red Star-ului nu este corect sau lipseste!**
+
+Pentru a anunța un RS este necesar să folosești comanda \`!curcubeu\` la care să adaugi tipul de joc (\`RS\`) și RS lvl-ul dorit (\`3,4,5,6,7,8,9,10 sau 11\`)
+
+Comandă: \`!curcubeu RS <RS LVL>\`
+Exemplu pentru Red Star lvl 3: \`!curcubeu RS 3\`
+Exemplu pentru Red Star lvl 7: \`!curcubeu RS 7\`  
+
+* *mesajul se autodistruge în 3 minute*
+  `, 3, true);
 }
 
 const reactionFilter = reaction => {
@@ -138,13 +172,15 @@ async function doRedStar(message, redStarLevel) {
   });  
 }
 
-function tipsMessage(message, textToSend, deleteUserMessage = false) {
+function tipsMessage(message, textToSend, timeoutMinutes = 3, deleteUserMessage = false) {
   message.reply(textToSend).then((response) => {
-    // delete bot response
-    response.delete({ timeout: 1000 * 60 * 1 });
-    // delete bot response
-    if (deleteUserMessage) {
-      message.delete({ timeout: 1000 * 60 * 1 });
+    if (timeoutMinutes > 0) {
+      // delete bot response
+      response.delete({ timeout: 1000 * 60 * timeoutMinutes });
+      // delete bot response
+      if (deleteUserMessage) {
+        message.delete({ timeout: 1000 * 60 * timeoutMinutes });
+      }
     }
   });
 }
@@ -173,7 +209,7 @@ function removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user) {
 }
 
 function sendQAutoDestroyMessage(message, embed, redStarLevel) {
-  let text = `Timpul de cautare pentru RS ${redStarLevel} a expirat!  \n`;
+  let text = `Timpul de căutare pentru RS ${redStarLevel} a expirat!\n`;
   
   const { fields } = embed;
   if (fields[Q_SLOT_1].value !== EMPTY_SLOT_SYMBOL) {
@@ -212,13 +248,13 @@ function sendCancelQMessage(message, embed, redStarLevel) {
     text += ': ';
   }
 
-  text += `${fields[Q_SLOT_1].value} a inchis cautarea pentru RS${redStarLevel}!`; 
+  text += `${fields[Q_SLOT_1].value} a închis căutarea pentru **RS ${redStarLevel}** !`; 
   message.channel.send(text);
 }
 
 function sendRsReadyMessage(message, embed, redStarLevel) {
   const { fields } = embed;
-  const text = `Tara, tara, avem ostasi! \n${fields[Q_SLOT_1].value}, ${fields[Q_SLOT_2].value}, ${fields[Q_SLOT_3].value}, ${fields[Q_SLOT_4].value}, sunteti pregatiti sa incepem RS${redStarLevel} ?`; 
+  const text = `Țară, țară, avem ostași! \n${fields[Q_SLOT_1].value}, ${fields[Q_SLOT_2].value}, ${fields[Q_SLOT_3].value}, ${fields[Q_SLOT_4].value}, sunteți pregătiți să începem RS ${redStarLevel} ?`; 
   message.channel.send(text);
 }
 
@@ -285,14 +321,14 @@ function buildQMessage(message, redStarLevel) {
     },
     {
       name: '\u200B',
-      value: `*Reactioneaza cu ${EMOJI_JOIN} pentru a da join. \n*Reactioneaza cu ${EMOJI_CANCEL} pentru a inchide cautarea (owner only).`,
+      value: `*Reacționează cu ${EMOJI_JOIN} pentru a da join. \n*Reacționează cu ${EMOJI_CANCEL} pentru a închide căutarea (owner only).`,
       inline: false,
     },
   );
 }
 
 function buildQMessageIntro(message, redStarLevel) {
-  return `@everyone, ${message.author} cauta oameni pentru **RS${redStarLevel}!**\nTara, tara, vrem ostasi\n*Cautarea se inchide automat in 1h.`;
+  return `@everyone, ${message.author} caută oameni pentru **RS ${redStarLevel} !**\nŢară, ţară, vrem ostaşi!\n*Căutarea se închide automat în 1h.`;
 }
 
 client.login(process.env.DISCORDJS_BOT_TOKEN);
