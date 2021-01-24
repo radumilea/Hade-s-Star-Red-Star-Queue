@@ -36,7 +36,7 @@ client.on('message', async (message) => {
 Pentru a continua este necesar să alegi un tip de joc. Tipuri de joc diponibile: \`RS\` (Red Star)
 
 **Red Star Search**
-Pentru a anunța un RS este necesar să folosești comanda \`!curcubeu\` la care să adaugi tipul de joc (RS) și RS lvl-ul dorit (LVLe RS disponibile: 3,4,5,6,7,8,9,10,11)
+Pentru a anunța un RS este necesar să folosești comanda \`!curcubeu\` la care să adaugi tipul de joc (RS) și RS lvl-ul dorit (\`3,4,5,6,7,8,9,10 sau 11\`)
 
 Comandă: \`!curcubeu RS <RS LVL>\`
 Exemplu pentru Red Star lvl 3: \`!curcubeu RS 3\`
