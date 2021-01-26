@@ -1,7 +1,7 @@
 require("dotenv").config();
 const Discord = require('discord.js')
 
-const PREFIX = '!!';
+const PREFIX = '!';
 const EMOJI_JOIN = '⚔️';
 const EMOJI_START = '🦸🏿‍♂️';
 const EMOJI_CANCEL = '❌';
