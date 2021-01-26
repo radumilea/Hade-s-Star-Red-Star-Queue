@@ -1,8 +1,9 @@
 require("dotenv").config();
 const Discord = require('discord.js')
 
-const PREFIX = '!';
+const PREFIX = '!!';
 const EMOJI_JOIN = '⚔️';
+const EMOJI_START = '🦸🏿‍♂️';
 const EMOJI_CANCEL = '❌';
 const EMPTY_SLOT_SYMBOL = '-';
 
@@ -11,6 +12,36 @@ const Q_SLOT_1 = 0;
 const Q_SLOT_2 = 1;
 const Q_SLOT_3 = 2;
 const Q_SLOT_4 = 3;
+
+const RS_LVLS = {
+  3: {
+    color: '#78D64B',
+  },
+  4: {
+    color: '#00B140',
+  },
+  5: {
+    color: '#3CDBC0',
+  },
+  6: {
+    color: '#00A3E0',
+  },
+  7: {
+    color: '#FFA400',
+  },
+  8: {
+    color: '#FF6900',
+  },
+  9: {
+    color: '#FA4616',
+  },
+  10: {
+    color: '#FA4616',
+  },
+  11: {
+    color: '#FA4616',
+  },
+}
 
 const client = new Discord.Client({
   partials: ['MESSAGE', 'REACTION']
@@ -94,7 +125,7 @@ Exemplu pentru Red Star lvl 7: \`!curcubeu RS 7\`
 }
 
 const reactionFilter = reaction => {
-  return reaction.emoji.name === EMOJI_JOIN || reaction.emoji.name === EMOJI_CANCEL;
+  return reaction.emoji.name === EMOJI_JOIN || reaction.emoji.name === EMOJI_CANCEL || reaction.emoji.name === EMOJI_START;
 }
 
 async function doRedStar(message, redStarLevel) {
@@ -106,12 +137,17 @@ async function doRedStar(message, redStarLevel) {
   logger('Q', `${message.author.username} - RS ${redStarLevel} | Send embed`);
 
   sendEmbed.then((searchMessage) => {
+    // pin message
+    searchMessage.pin({ reason: 'Red Star Search [Temporary PIN]' }).then((searchMessageAfterPin) => {
+      searchMessage = searchMessageAfterPin;
+    });
+
     // cache embed
     let currentEmbed = searchMessage.embeds[0];
     
     // delete Q after 1h
     let QAutoDestroy = setTimeout(() => {
-      sendEmbedIntro.delete({ timeout: 1 });
+      // sendEmbedIntro.delete({ timeout: 1 });
       searchMessage.delete({ timeout: 1 });
       sendQAutoDestroyMessage(message, currentEmbed, redStarLevel);
       logger('Q', `${message.author.username} - RS ${redStarLevel} | Destroy Q on timeout`);
@@ -119,6 +155,7 @@ async function doRedStar(message, redStarLevel) {
 
     // add reactions to Q embed
     searchMessage.react(EMOJI_JOIN);
+    searchMessage.react(EMOJI_START);
     searchMessage.react(EMOJI_CANCEL);
 
     // init reaction watcher
@@ -139,16 +176,24 @@ async function doRedStar(message, redStarLevel) {
         // Check if game is rdy
         if (isRsQRdy(currentEmbed)) {
           clearTimeout(QAutoDestroy);
-          sendEmbedIntro.delete({ timeout: 1 });
+          // sendEmbedIntro.delete({ timeout: 1 });
           searchMessage.delete({ timeout: 1 });
           sendRsReadyMessage(message, currentEmbed, redStarLevel);
           logger('Q', `${message.author.username} - RS ${redStarLevel} | Q is rdy`);
         }
       }
 
+      if (reaction.emoji.name === EMOJI_START && isQAuth) {
+        clearTimeout(QAutoDestroy);
+        // sendEmbedIntro.delete({ timeout: 1 });
+        searchMessage.delete({ timeout: 1 });
+        sendStartlQMessage(message, currentEmbed, redStarLevel);
+        logger('Q', `${message.author.username} - RS ${redStarLevel} | Start Game`);
+      }
+
       if (reaction.emoji.name === EMOJI_CANCEL && isQAuth) {
         clearTimeout(QAutoDestroy);
-        sendEmbedIntro.delete({ timeout: 1 });
+        // sendEmbedIntro.delete({ timeout: 1 });
         searchMessage.delete({ timeout: 1 });
         sendCancelQMessage(message, currentEmbed, redStarLevel);
         logger('Q', `${message.author.username} - RS ${redStarLevel} | Delete Q`);
@@ -182,6 +227,8 @@ function tipsMessage(message, textToSend, timeoutMinutes = 3, deleteUserMessage 
         message.delete({ timeout: 1000 * 60 * timeoutMinutes });
       }
     }
+  }).catch((err) => {
+    console.log('error: ', err);
   });
 }
 
@@ -227,6 +274,32 @@ function sendQAutoDestroyMessage(message, embed, redStarLevel) {
   message.channel.send(text);
 }
 
+function sendStartlQMessage(message, embed, redStarLevel) {
+  const { fields } = embed;
+  let text = '';
+  hasPlayers = false;
+
+  if (fields[Q_SLOT_2].value !== EMPTY_SLOT_SYMBOL) {
+    text += fields[Q_SLOT_2].value;
+    hasPlayers = true;
+  }
+  if (fields[Q_SLOT_3].value !== EMPTY_SLOT_SYMBOL) {
+    text += ', ' + fields[Q_SLOT_3].value;
+    hasPlayers = true;
+  }
+  if (fields[Q_SLOT_4].value !== EMPTY_SLOT_SYMBOL) {
+    text += ', ' + fields[Q_SLOT_4].value;
+    hasPlayers = true;
+  }
+
+  if (hasPlayers === true) {
+    text += `, ${fields[Q_SLOT_1].value}, sunteți pregătiți să începem **RS ${redStarLevel}** ?\n${fields[Q_SLOT_1].value} a închis căutarea mai devreme.`; 
+  } else {
+    text += `${fields[Q_SLOT_1].value} a închis căutarea pentru **RS ${redStarLevel}** !`; 
+  }
+  message.channel.send(text);
+}
+
 function sendCancelQMessage(message, embed, redStarLevel) {
   const { fields } = embed;
   let text = '';
@@ -251,6 +324,7 @@ function sendCancelQMessage(message, embed, redStarLevel) {
   text += `${fields[Q_SLOT_1].value} a închis căutarea pentru **RS ${redStarLevel}** !`; 
   message.channel.send(text);
 }
+
 
 function sendRsReadyMessage(message, embed, redStarLevel) {
   const { fields } = embed;
@@ -293,10 +367,10 @@ function logger(zone, message) {
 function buildQMessage(message, redStarLevel) {
   return new Discord.MessageEmbed()
   .setTitle(`[Search] Red Star LVL ${redStarLevel}`)
-  .setColor(`#00A3E0`)
+  .setColor(RS_LVLS[redStarLevel].color)
   .setAuthor(message.author.username)
   .setTimestamp()
-  .setThumbnail('https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fjupiter.png?alt=media&token=fd26f1cf-1cbb-45ea-a3d9-99fd34fb4a82')
+  .setThumbnail('https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Ffemale-cheerleader.png?alt=media&token=a3f08000-5582-42d2-a56d-40451d086055')
   .setFooter('Curcubeu / CurcubeuAcademy')
   .addFields(
     {
@@ -321,7 +395,7 @@ function buildQMessage(message, redStarLevel) {
     },
     {
       name: '\u200B',
-      value: `*Reacționează cu ${EMOJI_JOIN} pentru a da join. \n*Reacționează cu ${EMOJI_CANCEL} pentru a închide căutarea (owner only).`,
+      value: `*Reacționează cu ${EMOJI_JOIN} pentru a da join. \n*Reacționează cu ${EMOJI_START} pentru a incepe jocul mai devreme (owner only). \n*Reacționează cu ${EMOJI_CANCEL} pentru a închide căutarea (owner only).`,
       inline: false,
     },
   );
