@@ -72,6 +72,8 @@ Pentru a anunța un RS este necesar să folosești comanda \`!curcubeu\` la care
 Comandă: \`!curcubeu RS <RS LVL>\`
 Exemplu pentru Red Star lvl 3: \`!curcubeu RS 3\`
 Exemplu pentru Red Star lvl 7: \`!curcubeu RS 7\`
+
+Pentru quick search poți folosi una din comenzile: \`!rs3, !rs4, !rs5, ... !rs11\`. 
         `, 0);
         return;
       } else {
@@ -106,7 +108,14 @@ Exemplu pentru Red Star lvl 7: \`!curcubeu RS 7\`
 `, 3, true);
         }
       } 
-    } 
+    // DO Shortcuts for RS Quick Search
+    } else if (CMD_NAME.length <= 4 && CMD_NAME.toUpperCase().includes('RS')) {
+      let rsLvl = CMD_NAME.toUpperCase().replace('RS', '');
+      rsLvl = parseInt(rsLvl);
+      if (Number.isInteger(rsLvl) && rsLvl >= 3 && rsLvl <= 11) {
+        doRedStar(message, rsLvl);
+      } 
+    }
   }
 });
 
@@ -358,7 +367,7 @@ function sendCancelQMessage(message, embed, redStarLevel) {
 
 function sendRsReadyMessage(message, embed, redStarLevel) {
   const { fields } = embed;
-  const text = `Țară, țară, avem ostași! \n${fields[Q_SLOT_1].value}, ${fields[Q_SLOT_2].value}, ${fields[Q_SLOT_3].value}, ${fields[Q_SLOT_4].value}, sunteți pregătiți să începem RS ${redStarLevel} ?`; 
+  const text = `Țară, țară, avem ostași! \n${fields[Q_SLOT_1].value}, ${fields[Q_SLOT_2].value}, ${fields[Q_SLOT_3].value}, ${fields[Q_SLOT_4].value}, sunteți pregătiți să începem **RS ${redStarLevel}** ?`; 
   message.channel.send(text);
 }
 
