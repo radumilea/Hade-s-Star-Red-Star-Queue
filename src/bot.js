@@ -148,16 +148,24 @@ async function doRedStar(message, redStarLevel) {
     // delete Q after 1h
     let QAutoDestroy = setTimeout(() => {
       // sendEmbedIntro.delete({ timeout: 1 });
-      searchMessage.delete({ timeout: 1 });
+      searchMessage.delete({ timeout: 1 }).catch((err) => {
+        logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't delete embed message`);
+        console.log(err);
+      });
       sendQAutoDestroyMessage(message, currentEmbed, redStarLevel);
       logger('Q', `${message.author.username} - RS ${redStarLevel} | Destroy Q on timeout`);
     }, Q_TIMEOUT_T);
 
     // add reactions to Q embed
-    searchMessage.react(EMOJI_JOIN);
-    searchMessage.react(EMOJI_START);
-    searchMessage.react(EMOJI_CANCEL);
-
+    try {
+      searchMessage.react(EMOJI_JOIN);
+      searchMessage.react(EMOJI_START);
+      searchMessage.react(EMOJI_CANCEL);
+    } catch(err) {
+      logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't react to message`);
+      console.log(err);
+    }
+    
     // init reaction watcher
     const reactionCollector = new Discord.ReactionCollector(searchMessage, reactionFilter, { dispose: true });
     reactionCollector.on('collect', (reaction, user) => {
@@ -170,33 +178,45 @@ async function doRedStar(message, redStarLevel) {
 
       if (reaction.emoji.name === EMOJI_JOIN && !isQAuth) {
         currentEmbed = addPlayerToQAdnReturnNewEmbed(searchMessage, currentEmbed, user);
-        searchMessage.edit(currentEmbed);
+        searchMessage.edit(currentEmbed).catch((err) => {
+          logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't edit embed message`);
+          console.log(err);
+        });
         logger('Q', `${message.author.username} - RS ${redStarLevel} | Add ${user.username} to Q`);
 
         // Check if game is rdy
         if (isRsQRdy(currentEmbed)) {
           clearTimeout(QAutoDestroy);
           // sendEmbedIntro.delete({ timeout: 1 });
-          searchMessage.delete({ timeout: 1 });
+          searchMessage.delete({ timeout: 1 }).catch((err) => {
+            logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't delete embed message`);
+            console.log(err);
+          });
           sendRsReadyMessage(message, currentEmbed, redStarLevel);
           logger('Q', `${message.author.username} - RS ${redStarLevel} | Q is rdy`);
         }
       }
 
       if (reaction.emoji.name === EMOJI_START && isQAuth) {
+        logger('Q', `${message.author.username} - RS ${redStarLevel} | Start Game`);
         clearTimeout(QAutoDestroy);
         // sendEmbedIntro.delete({ timeout: 1 });
-        searchMessage.delete({ timeout: 1 });
+        searchMessage.delete({ timeout: 1 }).catch((err) => {
+          logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't delete embed message`);
+          console.log(err);
+        });
         sendStartlQMessage(message, currentEmbed, redStarLevel);
-        logger('Q', `${message.author.username} - RS ${redStarLevel} | Start Game`);
       }
 
       if (reaction.emoji.name === EMOJI_CANCEL && isQAuth) {
+        logger('Q', `${message.author.username} - RS ${redStarLevel} | Delete Q`);
         clearTimeout(QAutoDestroy);
         // sendEmbedIntro.delete({ timeout: 1 });
-        searchMessage.delete({ timeout: 1 });
+        searchMessage.delete({ timeout: 1 }).catch((err) => {
+          logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't delete embed message`);
+          console.log(err);
+        });
         sendCancelQMessage(message, currentEmbed, redStarLevel);
-        logger('Q', `${message.author.username} - RS ${redStarLevel} | Delete Q`);
       }
     });
 
@@ -210,7 +230,10 @@ async function doRedStar(message, redStarLevel) {
 
       if (reaction.emoji.name === EMOJI_JOIN && !isQAuth) {
         currentEmbed = removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user);
-        searchMessage.edit(currentEmbed);
+        searchMessage.edit(currentEmbed).catch((err) => {
+          logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't edit embed message`);
+          console.log(err);
+        });;
         logger('Q', `${message.author.username} - RS ${redStarLevel} | Remove ${user.username} from Q`);
       }
     });
@@ -221,14 +244,22 @@ function tipsMessage(message, textToSend, timeoutMinutes = 3, deleteUserMessage 
   message.reply(textToSend).then((response) => {
     if (timeoutMinutes > 0) {
       // delete bot response
-      response.delete({ timeout: 1000 * 60 * timeoutMinutes });
+      response.delete({ timeout: 1000 * 60 * timeoutMinutes }).catch((err) => {
+        logger('ERROR', `${message.author.username} | Can't delete tips message`);
+        console.log(err);
+      });
+
       // delete bot response
       if (deleteUserMessage) {
-        message.delete({ timeout: 1000 * 60 * timeoutMinutes });
+        message.delete({ timeout: 1000 * 60 * timeoutMinutes }).catch((err) => {
+        logger('ERROR', `${message.author.username} | Can't delete user message (tips)`);
+        console.log(err);
+      });;
       }
     }
   }).catch((err) => {
-    console.log('error: ', err);
+    logger('ERROR', `${message.author.username} | Can't send reply message`);
+    console.log(err);
   });
 }
 
@@ -324,7 +355,6 @@ function sendCancelQMessage(message, embed, redStarLevel) {
   text += `${fields[Q_SLOT_1].value} a închis căutarea pentru **RS ${redStarLevel}** !`; 
   message.channel.send(text);
 }
-
 
 function sendRsReadyMessage(message, embed, redStarLevel) {
   const { fields } = embed;
