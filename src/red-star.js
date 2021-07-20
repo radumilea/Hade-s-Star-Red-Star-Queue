@@ -396,6 +396,8 @@ function addPlayerToQAdnReturnNewEmbed(message, currentEmbed, user, redStarLevel
 
   if (playerCount === 4) {
     newEmbed.setThumbnail(Q_THUMBNAIL_SUCCESS);
+    // UPDATE FIELDS
+    newEmbed = newEmbed.spliceFields(Q_SLOT_FOR_INFO, 1);
   }
 
   return newEmbed;
