@@ -17,54 +17,35 @@ const Q_SLOT_4 = 3;
 
 const Q_SLOT_FOR_INFO = 4;
 
-const Q_THUMBNAIL_IN_PROGRESS = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fcheerleaders.png?alt=media&token=aac3f437-87b1-49be-b446-a9015f64cb57';
-const Q_THUMBNAIL_SUCCESS = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fswords(2).png?alt=media&token=d22f538a-bc45-4a89-a497-3c3c68e2e4af';
-const Q_THUMBNAIL_CLOSED = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fshipwreck.png?alt=media&token=c9fc0e34-6296-49bf-a78c-73d04b7bbce1';
+const Q_THUMBNAIL_IN_PROGRESS = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fbread-1.png?alt=media&token=38406910-251e-49d5-8520-ee8a899c606f';
+const Q_THUMBNAIL_SUCCESS = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fbread-2.png?alt=media&token=a2b0be1d-b381-4154-abac-1b3c58d73788';
+const Q_THUMBNAIL_CLOSED = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fbread-3.png?alt=media&token=98aa5329-b79b-4e2b-954a-e37a9ca4884d';
 
 const GOOD_NOTIFICATION_COLOR = '#57F287';
 const WARNING_NOTIFICATION_COLOR = '#FEE75C';
 const SUCCESS_NOTIFICATION_COLOR = '#00a800';
 const BAD_NOTIFICATION_COLOR = '#ED4245';
 
-const RS_EMBED_TITLE = '[%playerCount%/4] RS %redStarLevel% Matchmaking'; 
+const RS_EMBED_TITLE = '[%playerCount%/4] RS %redStarLevel%%redStarType% Matchmaking'; 
 
-const RS_LVLS = {
-  3: {
+RS_STAR_TYPE = {
+  'classic': {
     color: '#78D64B',
+    titleExtraLabel: ''
   },
-  4: {
-    color: '#00B140',
-  },
-  5: {
-    color: '#3CDBC0',
-  },
-  6: {
-    color: '#00A3E0',
-  },
-  7: {
-    color: '#FFA400',
-  },
-  8: {
-    color: '#FF6900',
-  },
-  9: {
+  'dark': {
     color: '#FA4616',
-  },
-  10: {
-    color: '#FA4616',
-  },
-  11: {
-    color: '#FA4616',
-  },
+    titleExtraLabel: ' DARK'
+  }
 }
 
-async function doRedStar(discordRef, message, redStarLevel) {
+async function doRedStar(discordRef, message, redStarLevel, redStarType) {
   Discord = discordRef;
-  UTIL.logger('RedStar Search', `${message.author.username} - RS ${redStarLevel}`);
+  UTIL.logger(`RedStar Search ${redStarType}`, `${message.author.username} - RS ${redStarLevel}`);
 
   // send Q message
   // await message.channel.send(buildQMessageIntro(message, redStarLevel));
-  const sendEmbed = message.channel.send(buildQMessage(message, redStarLevel));
+  const sendEmbed = message.channel.send(buildQMessage(message, redStarLevel, redStarType));
   UTIL.logger('Q', `${message.author.username} - RS ${redStarLevel} | Send embed`);
 
   sendEmbed.then((searchMessage) => {
@@ -89,13 +70,13 @@ async function doRedStar(discordRef, message, redStarLevel) {
       // Stop reaction watcher
       reactionCollector.stop();
       // Update embed with status "CLOSED"
-      currentEmbed = editEmbedForClose(currentEmbed, redStarLevel, false);
+      currentEmbed = editEmbedForClose(currentEmbed, redStarLevel, false, redStarType);
       searchMessage.edit(currentEmbed).catch((err) => {
         UTIL.logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't edit embed message`);
         console.log(err);
       });
       // send destroy message
-      sendQAutoDestroyMessage(message, currentEmbed, redStarLevel, searchMessage);
+      sendQAutoDestroyMessage(message, currentEmbed, redStarLevel, searchMessage, redStarType);
       UTIL.logger('Q', `${message.author.username} - RS ${redStarLevel} | Destroy Q on timeout`);
     }, Q_TIMEOUT_T);
 
@@ -108,7 +89,7 @@ async function doRedStar(discordRef, message, redStarLevel) {
       const isQAuth = isQAuthor(message, user);
 
       if (reaction.emoji.name === EMOJI_JOIN && !isQAuth) {
-        currentEmbed = addPlayerToQAdnReturnNewEmbed(searchMessage, currentEmbed, user, redStarLevel);
+        currentEmbed = addPlayerToQAdnReturnNewEmbed(searchMessage, currentEmbed, user, redStarLevel, redStarType);
         searchMessage.edit(currentEmbed).catch((err) => {
           UTIL.logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't edit embed message`);
           console.log(err);
@@ -126,10 +107,10 @@ async function doRedStar(discordRef, message, redStarLevel) {
           reactionCollector.stop();
           // Stop Q timeout
           clearTimeout(QAutoDestroy);
-          sendRsReadyMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl);
+          sendRsReadyMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl, redStarType);
           UTIL.logger('Q', `${message.author.username} - RS ${redStarLevel} | Q is rdy`);
         } else {
-          sendNewUserJoinedMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl);
+          sendNewUserJoinedMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl, redStarType);
         }
       }
 
@@ -140,12 +121,12 @@ async function doRedStar(discordRef, message, redStarLevel) {
         // Stop Q timeout
         clearTimeout(QAutoDestroy);
         // Update embed with status "CLOSED"
-        currentEmbed = editEmbedForClose(currentEmbed, redStarLevel, true);
+        currentEmbed = editEmbedForClose(currentEmbed, redStarLevel, true, redStarType);
         searchMessage.edit(currentEmbed).catch((err) => {
           UTIL.logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't edit embed message`);
           console.log(err);
         });
-        sendStartQMessage(message, currentEmbed, redStarLevel, searchMessage);
+        sendStartQMessage(message, currentEmbed, redStarLevel, searchMessage, redStarType);
       }
 
       if (reaction.emoji.name === EMOJI_CANCEL && isQAuth) {
@@ -155,13 +136,13 @@ async function doRedStar(discordRef, message, redStarLevel) {
         // Stop Q timeout
         clearTimeout(QAutoDestroy);
         // Update embed with status "CLOSED"
-        currentEmbed = editEmbedForClose(currentEmbed, redStarLevel, false);
+        currentEmbed = editEmbedForClose(currentEmbed, redStarLevel, false, redStarType);
         searchMessage.edit(currentEmbed).catch((err) => {
           UTIL.logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't edit embed message`);
           console.log(err);
         });
         // Send cancel Q notification
-        sendCancelQMessage(message, currentEmbed, redStarLevel, searchMessage);
+        sendCancelQMessage(message, currentEmbed, redStarLevel, searchMessage, redStarType);
       }
     });
 
@@ -174,7 +155,7 @@ async function doRedStar(discordRef, message, redStarLevel) {
       const isQAuth = isQAuthor(message, user);
 
       if (reaction.emoji.name === EMOJI_JOIN && !isQAuth) {
-        currentEmbed = removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user, redStarLevel);
+        currentEmbed = removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user, redStarLevel, redStarType);
         searchMessage.edit(currentEmbed).catch((err) => {
           UTIL.logger('ERROR', `${message.author.username} - RS ${redStarLevel} | Can't edit embed message`);
           console.log(err);
@@ -184,7 +165,7 @@ async function doRedStar(discordRef, message, redStarLevel) {
         const qMembersList = getQMembersAsList(currentEmbed);
         const searchMessageUrl = getSearchMessageUrl(searchMessage);
 
-        sendUserLeftMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl);
+        sendUserLeftMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl, redStarType);
         UTIL.logger('Q', `${message.author.username} - RS ${redStarLevel} | Remove ${user.username} from Q`);
       }
     });
@@ -198,11 +179,11 @@ function getSearchMessageUrl(searchMessage) {
   return `https://discordapp.com/channels/${guildId}/${channelId}/${messageId}`;
 }
 
-function editEmbedForClose(currentEmbed, redStarLevel, success = false) {
+function editEmbedForClose(currentEmbed, redStarLevel, success, redStarType) {
   let newEmbed = new Discord.MessageEmbed(currentEmbed);
 
   // UPDATE EMBED TITLE
-  newEmbed.title = returnEmbedTitle(0, redStarLevel);
+  newEmbed.title = returnEmbedTitle(0, redStarLevel, redStarType);
 
   // UPDATE FIELDS
   newEmbed = newEmbed.spliceFields(Q_SLOT_FOR_INFO, 1);
@@ -213,6 +194,9 @@ function editEmbedForClose(currentEmbed, redStarLevel, success = false) {
   } else {
     newEmbed.setThumbnail(Q_THUMBNAIL_CLOSED);
   }
+
+  // UPDATE COLOR FOR DISABLED
+  newEmbed.setColor('#a4a4a4');
 
   return newEmbed;
 }
@@ -235,7 +219,7 @@ function isQAuthor(message, user) {
   return message.author.id === user.id;
 }
 
-function removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user, redStarLevel) {
+function removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user, redStarLevel, redStarType) {
   let newEmbed = new Discord.MessageEmbed(currentEmbed);
   const username = `<@${user.id}>`;
 
@@ -253,31 +237,31 @@ function removePlayerFromQAdnReturnNewEmbed(searchMessage, currentEmbed, user, r
 
   // UPDATE TITLE
   const playerCount = getQMembersCount(newEmbed);
-  newEmbed.title = returnEmbedTitle(playerCount, redStarLevel);
+  newEmbed.title = returnEmbedTitle(playerCount, redStarLevel, redStarType);
 
   return newEmbed;
 }
 
-function sendNewUserJoinedMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl) {
+function sendNewUserJoinedMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl, redStarType) {
   let description = `In matchmaking queue: ${qMembersList}`;
   if (qMembersCount === 3) {
     description += '\nFYI: @everyone';
   }
   const embed = new Discord.MessageEmbed()
   .setColor(GOOD_NOTIFICATION_COLOR)
-  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}] ${user.username} joined the queue! ${EMOJI_GO_TOP}`)
+  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}${RS_STAR_TYPE[redStarType].titleExtraLabel}] ${user.username} joined the queue! ${EMOJI_GO_TOP}`)
   .setURL(searchMessageUrl)
   .setDescription(description);
   
   message.channel.send(embed);
 }
 
-function sendUserLeftMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl) {
+function sendUserLeftMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl, redStarType) {
   let description = `In matchmaking queue: ${qMembersList}`;
 
   const embed = new Discord.MessageEmbed()
   .setColor(WARNING_NOTIFICATION_COLOR)
-  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}] ${user.username} has left the queue! ${EMOJI_GO_TOP}`)
+  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}${RS_STAR_TYPE[redStarType].titleExtraLabel}] ${user.username} has left the queue! ${EMOJI_GO_TOP}`)
   .setURL(searchMessageUrl)
   .setDescription(description);
   
@@ -302,52 +286,52 @@ function getQMembersAsList(embed) {
   return members;
 }
 
-function sendQAutoDestroyMessage(message, currentEmbed, redStarLevel, searchMessage) {
+function sendQAutoDestroyMessage(message, currentEmbed, redStarLevel, searchMessage, redStarType) {
   const qMembersCount = getQMembersCount(currentEmbed);
   const qMembersList = getQMembersAsList(currentEmbed);
   const searchMessageUrl = getSearchMessageUrl(searchMessage);
 
   const notification = new Discord.MessageEmbed()
   .setColor(BAD_NOTIFICATION_COLOR)
-  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}] Matchmaking has expired! Try again?`)
+  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}${RS_STAR_TYPE[redStarType].titleExtraLabel}] Matchmaking has expired! Try again?`)
   .setURL(searchMessageUrl)
   .setDescription(`FYI: ${qMembersList}`);
   
   message.channel.send(notification);
 }
 
-function sendStartQMessage(message, currentEmbed, redStarLevel, searchMessage) {
+function sendStartQMessage(message, currentEmbed, redStarLevel, searchMessage, redStarType) {
   const qMembersCount = getQMembersCount(currentEmbed);
   const qMembersList = getQMembersAsList(currentEmbed);
   const searchMessageUrl = getSearchMessageUrl(searchMessage);
 
   const notification = new Discord.MessageEmbed()
   .setColor(SUCCESS_NOTIFICATION_COLOR)
-  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}] Matchmaking ready! Let's play!`)
+  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}${RS_STAR_TYPE[redStarType].titleExtraLabel}] Matchmaking ready! Let's play!`)
   .setURL(searchMessageUrl)
   .setDescription(`Team members: ${qMembersList}`);
   
   message.channel.send(notification);
 }
 
-function sendCancelQMessage(message, currentEmbed, redStarLevel, searchMessage) {
+function sendCancelQMessage(message, currentEmbed, redStarLevel, searchMessage, redStarType) {
   const qMembersCount = getQMembersCount(currentEmbed);
   const qMembersList = getQMembersAsList(currentEmbed);
   const searchMessageUrl = getSearchMessageUrl(searchMessage);
 
   const notification = new Discord.MessageEmbed()
   .setColor(BAD_NOTIFICATION_COLOR)
-  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}] Matchmaking closed by ${message.author.username}`)
+  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}${RS_STAR_TYPE[redStarType].titleExtraLabel}] Matchmaking closed by ${message.author.username}`)
   .setURL(searchMessageUrl)
   .setDescription(`FYI: ${qMembersList}`);
   
   message.channel.send(notification);
 }
 
-function sendRsReadyMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl) {
+function sendRsReadyMessage(message, user, redStarLevel, qMembersCount, qMembersList, searchMessageUrl, redStarType) {
   const notification = new Discord.MessageEmbed()
   .setColor(SUCCESS_NOTIFICATION_COLOR)
-  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}] Matchmaking ready! Let's play!`)
+  .setTitle(`[${qMembersCount}/4 RS ${redStarLevel}${RS_STAR_TYPE[redStarType].titleExtraLabel}] Matchmaking ready! Let's play!`)
   .setURL(searchMessageUrl)
   .setDescription(`Team members: ${qMembersList}`);
   
@@ -373,7 +357,7 @@ function getQMembersCount(embed) {
   return qCount;
 }
 
-function addPlayerToQAdnReturnNewEmbed(message, currentEmbed, user, redStarLevel) {
+function addPlayerToQAdnReturnNewEmbed(message, currentEmbed, user, redStarLevel, redStarType) {
   let newEmbed = new Discord.MessageEmbed(currentEmbed);
   const username = `<@${user.id}>`;
 
@@ -392,7 +376,7 @@ function addPlayerToQAdnReturnNewEmbed(message, currentEmbed, user, redStarLevel
 
   // UPDATE TITLE
   const playerCount = getQMembersCount(newEmbed);
-  newEmbed.title = returnEmbedTitle(playerCount, redStarLevel);
+  newEmbed.title = returnEmbedTitle(playerCount, redStarLevel, redStarType);
 
   if (playerCount === 4) {
     newEmbed.setThumbnail(Q_THUMBNAIL_SUCCESS);
@@ -403,10 +387,11 @@ function addPlayerToQAdnReturnNewEmbed(message, currentEmbed, user, redStarLevel
   return newEmbed;
 }
 
-function returnEmbedTitle(playerCount, redStarLevel) {
+function returnEmbedTitle(playerCount, redStarLevel, redStarType) {
     let newTitle = RS_EMBED_TITLE;
     newTitle = newTitle.replace('%playerCount%', playerCount);
     newTitle = newTitle.replace('%redStarLevel%', redStarLevel);
+    newTitle = newTitle.replace('%redStarType%', RS_STAR_TYPE[redStarType].titleExtraLabel);
 
     if (playerCount === 0 || playerCount === 4){
       return '[CLOSED]' + newTitle.slice(5);
@@ -415,11 +400,11 @@ function returnEmbedTitle(playerCount, redStarLevel) {
     return newTitle;
 }
 
-function buildQMessage(message, redStarLevel) {
-  const embedTitle = returnEmbedTitle(1, redStarLevel);
+function buildQMessage(message, redStarLevel, redStarType) {
+  const embedTitle = returnEmbedTitle(1, redStarLevel, redStarType);
   return new Discord.MessageEmbed()
   .setTitle(embedTitle)
-  .setColor(RS_LVLS[redStarLevel].color)
+  .setColor(RS_STAR_TYPE[redStarType].color)
   .setTimestamp()
   .setThumbnail(Q_THUMBNAIL_IN_PROGRESS)
   .setFooter('Curcubeu / CurcubeuAcademy')
