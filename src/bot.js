@@ -41,13 +41,27 @@ Pentru quick search poți folosi una din comenzile: \`!rs3, !rs4, !rs5, ... !rs1
         return;
       } else {
         const command = args[0].toUpperCase();
+        console.log('command',command);
         if(command === 'RS') {
           // do red star
           if (args[1]) {
             const redStarLvl = parseInt(args[1]);
             // check if red star lvl is valid
-            if (Number.isInteger(redStarLvl) && redStarLvl >= 3 && redStarLvl <= 11) {
-              RS.doRedStar(Discord, message, redStarLvl);
+            if (Number.isInteger(redStarLvl) && redStarLvl >= 3 && redStarLvl <= 12) {
+              RS.doRedStar(Discord, message, redStarLvl, 'classic');
+            } else {
+              return RS.invalidRedStarLvl(message);
+            }
+          } else {
+            return RS.invalidRedStarLvl(message);
+          }
+        } else if(command === 'RSD') {
+          // do red star
+          if (args[1]) {
+            const redStarLvl = parseInt(args[1]);
+            // check if red star lvl is valid
+            if (Number.isInteger(redStarLvl) && redStarLvl >= 3 && redStarLvl <= 12) {
+              RS.doRedStar(Discord, message, redStarLvl, 'dark');
             } else {
               return RS.invalidRedStarLvl(message);
             }
@@ -84,12 +98,22 @@ Exemplu pentru Red Star lvl 7: \`!curcubeu RS 7\`
         }
       } 
     // DO Shortcuts for RS Quick Search
-    } else if (CMD_NAME.length <= 4 && CMD_NAME.toUpperCase().includes('RS')) {
-      let rsLvl = CMD_NAME.toUpperCase().replace('RS', '');
-      rsLvl = parseInt(rsLvl);
-      if (Number.isInteger(rsLvl) && rsLvl >= 3 && rsLvl <= 11) {
-        RS.doRedStar(Discord, message, rsLvl);
-      } 
+    } else if (CMD_NAME.length <= 5) {
+      console.log('CMD_NAME', CMD_NAME);
+      if (CMD_NAME.toUpperCase().includes('RSD')) {
+        let rsLvl = CMD_NAME.toUpperCase().replace('RSD', '');
+        rsLvl = parseInt(rsLvl);
+        if (Number.isInteger(rsLvl) && rsLvl >= 3 && rsLvl <= 12) {
+          console.log('do dark red star');
+          RS.doRedStar(Discord, message, rsLvl, 'dark');
+        } 
+      } else if (CMD_NAME.toUpperCase().includes('RS')) {
+        let rsLvl = CMD_NAME.toUpperCase().replace('RS', '');
+        rsLvl = parseInt(rsLvl);
+        if (Number.isInteger(rsLvl) && rsLvl >= 3 && rsLvl <= 12) {
+          RS.doRedStar(Discord, message, rsLvl, 'classic');
+        } 
+      }
     }
   }
 });
