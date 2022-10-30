@@ -17,9 +17,9 @@ const Q_SLOT_4 = 3;
 
 const Q_SLOT_FOR_INFO = 4;
 
-const Q_THUMBNAIL_IN_PROGRESS = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fbread-1.png?alt=media&token=38406910-251e-49d5-8520-ee8a899c606f';
-const Q_THUMBNAIL_SUCCESS = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fbread-2.png?alt=media&token=a2b0be1d-b381-4154-abac-1b3c58d73788';
-const Q_THUMBNAIL_CLOSED = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fbread-3.png?alt=media&token=98aa5329-b79b-4e2b-954a-e37a9ca4884d';
+const Q_THUMBNAIL_IN_PROGRESS = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fghost_IN_PROGRESS.png?alt=media&token=9348c711-c308-42ba-8f41-5f06d55139ba';
+const Q_THUMBNAIL_SUCCESS = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fghost_SUCCESS.png?alt=media&token=a39bda29-3d87-4243-b5bb-a0e549d111b5';
+const Q_THUMBNAIL_CLOSED = 'https://firebasestorage.googleapis.com/v0/b/personalpublic-ae1da.appspot.com/o/discord%2Fghost_CLOSED.png?alt=media&token=9783e591-a7ca-443f-b8f9-cb120526fa38';
 
 const GOOD_NOTIFICATION_COLOR = '#57F287';
 const WARNING_NOTIFICATION_COLOR = '#FEE75C';
