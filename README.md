@@ -5,11 +5,16 @@ button, and the channel is notified when the squad is complete.
 
 ## Commands
 
-| Command             | Effect                               |
-| ------------------- | ------------------------------------ |
-| `/rs level:<3-12>`  | Red Star matchmaking, 4 players      |
-| `/drs level:<7-12>` | Dark Red Star matchmaking, 3 players |
-| `/help`             | Help                                 |
+| Command             | Effect                                                  |
+| ------------------- | ------------------------------------------------------- |
+| `/rs7` (3-12)       | Red Star matchmaking, 4 players, level in the name      |
+| `/drs9` (7-12)      | Dark Red Star matchmaking, 3 players, level in the name |
+| `/rs level:<3-12>`  | Same as `/rs7`, level given as an option                |
+| `/drs level:<7-12>` | Same as `/drs9`, level given as an option               |
+| `/help`             | Help                                                    |
+
+The per-level shortcuts exist because the old `!rsd9` habit maps onto `/drs9` + Enter; the
+`level:` form is where newcomers get lost (type `/rs`, Space, the level, Enter).
 
 The old text commands (`!rs7`, `!rsd7`, `!curcubeu …`) are retired. With `LEGACY_TEXT_COMMANDS=true`
 using one gets a public reply listing the slash commands, which disappears after five minutes (at

@@ -4,16 +4,26 @@ import { TEMPORARY_REPLY_TTL_MS, replyEphemeral } from '../discord/replies.js';
 import { BUTTON_LABELS } from '../red-star/render.js';
 import { DEFAULT_BUTTON_COOLDOWN_MS } from '../red-star/service.js';
 import { RED_STAR_TYPES, RS_STAR_TYPE, levelRangeText } from '../red-star/types.js';
+import { LEVEL_OPTION, levelCommandName } from './red-star-command.js';
 import type { SlashCommand } from './types.js';
 
 export const HELP_COMMAND_NAME = 'help';
 
+/** One line per type, showing the shortcut for its lowest level, e.g. `/drs7`. */
 function commandLines(): string[] {
   return RED_STAR_TYPES.map((type) => {
     const config = RS_STAR_TYPE[type];
-    return `• \`/${config.commandName} level:<${levelRangeText(type)}>\` – ${config.description}`;
+    const example = levelCommandName(type, config.minLevel);
+    return `• \`/${example}\` – ${config.description}, levels ${levelRangeText(type)}`;
   });
 }
+
+/** How to get a slash command sent; the picker and the Space step confuse newcomers. */
+export const TYPING_HINT =
+  'Type the command and press Enter; it pops up as you type. ' +
+  `\`/${RS_STAR_TYPE.classic.commandName} ${LEVEL_OPTION}:7\` and ` +
+  `\`/${RS_STAR_TYPE.dark.commandName} ${LEVEL_OPTION}:9\` work too: ` +
+  `type \`/${RS_STAR_TYPE.classic.commandName}\`, press Space, type the level, press Enter.`;
 
 /** The timings `/help` quotes, taken from the configuration so the text never drifts. */
 export type HelpConfig = Pick<RuntimeConfig, 'queueTimeoutMs' | 'queueReminderMs'>;
@@ -33,6 +43,7 @@ export function helpText(config: HelpConfig): string {
     '',
     '**Start a matchmaking**',
     ...commandLines(),
+    TYPING_HINT,
     'One matchmaking per level and type per channel: if one is already open, the command joins it.',
     '',
     '**Buttons on the card**',
@@ -56,7 +67,7 @@ export function legacyCommandsNotice(): string {
     'The text commands were replaced by slash commands:',
     ...commandLines(),
     `• \`/${HELP_COMMAND_NAME}\` for details`,
-    'Type `/` in the message box and pick the command.',
+    TYPING_HINT,
   ].join('\n');
 }
 

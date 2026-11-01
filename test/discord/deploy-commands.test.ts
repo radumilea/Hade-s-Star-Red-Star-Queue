@@ -22,7 +22,11 @@ describe('deployCommands', () => {
       body: createCommands().map((c) => c.toJSON()),
     });
     expect(result.scope).toBe('guild');
-    expect(result.commands.map((c) => c.name)).toEqual(['rs', 'drs', 'help']);
+    const names = result.commands.map((c) => c.name);
+    expect(names).toHaveLength(19);
+    expect(names.slice(0, 2)).toEqual(['rs', 'rs3']);
+    expect(names).toContain('drs9');
+    expect(names.at(-1)).toBe('help');
   });
 
   test('PUTs globally without a guild id', async () => {
@@ -74,7 +78,11 @@ describe('deployCommands', () => {
     const info = vi.spyOn(logger, 'info');
     await deployCommands({ rest: fakeRest(), logger, clientId: 'app', guildId: undefined });
     expect(info).toHaveBeenCalledWith(
-      expect.objectContaining({ count: 3, scope: 'global', names: ['rs', 'drs', 'help'] }),
+      expect.objectContaining({
+        count: 19,
+        scope: 'global',
+        names: createCommands().map((c) => c.name),
+      }),
       'Slash commands deployed',
     );
   });

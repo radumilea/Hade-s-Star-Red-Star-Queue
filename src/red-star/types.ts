@@ -45,6 +45,12 @@ export function isValidRedStarLevel(level: unknown, type: RedStarType): level is
   );
 }
 
+/** Every level a type exists at, lowest first; one slash command per entry. */
+export function levelsOf(type: RedStarType): number[] {
+  const { minLevel, maxLevel } = RS_STAR_TYPE[type];
+  return Array.from({ length: maxLevel - minLevel + 1 }, (_, i) => minLevel + i);
+}
+
 /** Human readable level range for a type, used in help texts and validation messages. */
 export function levelRangeText(type: RedStarType): string {
   const { minLevel, maxLevel } = RS_STAR_TYPE[type];

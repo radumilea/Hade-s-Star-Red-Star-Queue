@@ -74,9 +74,10 @@ describe('legacy text commands', () => {
 
   test('the notice lists the slash commands', () => {
     const notice = legacyCommandsNotice();
-    expect(notice).toContain('/rs level:<3-12>');
-    expect(notice).toContain('/drs level:<7-12>');
+    expect(notice).toContain('`/rs3` – Red Star matchmaking (4 players), levels 3-12');
+    expect(notice).toContain('`/drs7` – Dark Red Star matchmaking (3 players), levels 7-12');
     expect(notice).toContain('/help');
+    expect(notice).toContain('press Space, type the level, press Enter.');
     expect(notice).not.toContain('!rs');
   });
 });

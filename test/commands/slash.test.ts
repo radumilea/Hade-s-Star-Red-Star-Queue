@@ -1,16 +1,23 @@
 import { GuildMember, MessageFlags, PermissionsBitField } from 'discord.js';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { HELP_COMMAND_NAME, createHelpCommand, helpText } from '../../src/commands/help.js';
+import {
+  HELP_COMMAND_NAME,
+  TYPING_HINT,
+  createHelpCommand,
+  helpText,
+} from '../../src/commands/help.js';
 import {
   LEVEL_OPTION,
   createRedStarCommand,
+  createRedStarLevelCommand,
   joinedExistingReply,
+  levelCommandName,
 } from '../../src/commands/red-star-command.js';
 import { commandsByName, createCommands } from '../../src/commands/registry.js';
 import { CHANNEL_NOT_SUPPORTED_MESSAGE, startQueue } from '../../src/commands/start-queue.js';
 import { TEMPORARY_REPLY_TTL_MS, temporaryMarker } from '../../src/discord/replies.js';
 import { UserFacingError } from '../../src/errors.js';
-import { RS_STAR_TYPE } from '../../src/red-star/types.js';
+import { RED_STAR_TYPES, RS_STAR_TYPE, levelsOf } from '../../src/red-star/types.js';
 import {
   queueView,
   makeChannel,
@@ -40,14 +47,47 @@ describe('/rs and /drs definitions', () => {
     });
   });
 
-  test('registry exposes rs, drs and help with unique names', () => {
+  test('a level shortcut carries the level in its name and takes no options', () => {
+    const json = createRedStarLevelCommand('dark', 9).toJSON();
+    expect(json.name).toBe('drs9');
+    expect(json.description).toBe('Dark RS 9 matchmaking (3 players)');
+    expect(json.contexts).toEqual([0]);
+    expect(json.options ?? []).toHaveLength(0);
+    expect(createRedStarLevelCommand('classic', 12).toJSON()).toMatchObject({
+      name: 'rs12',
+      description: 'RS 12 matchmaking (4 players)',
+    });
+  });
+
+  test('registry exposes each type, one shortcut per level, then help, all unique', () => {
     const commands = createCommands();
     const byName = commandsByName(commands);
-    expect([...byName.keys()]).toEqual(['rs', 'drs', HELP_COMMAND_NAME]);
+    const expected = RED_STAR_TYPES.flatMap((type) => [
+      RS_STAR_TYPE[type].commandName,
+      ...levelsOf(type).map((level) => levelCommandName(type, level)),
+    ]);
+    expect([...byName.keys()]).toEqual([...expected, HELP_COMMAND_NAME]);
+    expect(byName.size).toBe(19);
     expect(() => commandsByName([...commands, ...commands])).toThrow('Duplicate');
     for (const command of commands) {
       expect(command.toJSON().name).toBe(command.name);
+      expect(command.toJSON().name).toMatch(/^[a-z0-9]{1,32}$/);
     }
+  });
+});
+
+describe('/drs9 execute', () => {
+  test('opens the queue at the level in the name without reading options', async () => {
+    const { ctx, registry } = makeContext();
+    const { interaction, raw, channel } = makeSlashInteraction({ commandName: 'drs9' });
+    await createRedStarLevelCommand('dark', 9).execute(interaction, ctx);
+
+    expect(raw.deferReply).toHaveBeenCalledWith({ flags: MessageFlags.Ephemeral });
+    expect(raw.options.getInteger).not.toHaveBeenCalled();
+    expect(registry.size).toBe(1);
+    expect(registry.all()[0]?.queue).toMatchObject({ type: 'dark', level: 9, ownerId: 'owner' });
+    expect(channel?.send).toHaveBeenCalledTimes(2);
+    expect(raw.editReply).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -218,8 +258,13 @@ describe('/help', () => {
 
   test('help text covers the commands, the buttons and the configured timings', () => {
     const text = helpText({ queueTimeoutMs: 60 * 60_000, queueReminderMs: 10 * 60_000 });
-    expect(text).toContain('/rs level:<3-12>');
-    expect(text).toContain('/drs level:<7-12>');
+    expect(text).toContain('• `/rs3` – Red Star matchmaking (4 players), levels 3-12');
+    expect(text).toContain('• `/drs7` – Dark Red Star matchmaking (3 players), levels 7-12');
+    expect(text).toContain(TYPING_HINT);
+    expect(TYPING_HINT).toBe(
+      'Type the command and press Enter; it pops up as you type. `/rs level:7` and ' +
+        '`/drs level:9` work too: type `/rs`, press Space, type the level, press Enter.',
+    );
     expect(text).toContain('**Join**');
     expect(text).toContain('**Leave**');
     expect(text).toContain('**Start**');

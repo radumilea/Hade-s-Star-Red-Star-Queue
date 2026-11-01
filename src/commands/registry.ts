@@ -1,10 +1,17 @@
-import { RED_STAR_TYPES } from '../red-star/types.js';
+import { RED_STAR_TYPES, levelsOf } from '../red-star/types.js';
 import { createHelpCommand } from './help.js';
-import { createRedStarCommand } from './red-star-command.js';
+import { createRedStarCommand, createRedStarLevelCommand } from './red-star-command.js';
 import type { SlashCommand } from './types.js';
 
+/** The generic command precedes its level shortcuts so the picker lists `/rs` first. */
 export function createCommands(): SlashCommand[] {
-  return [...RED_STAR_TYPES.map((type) => createRedStarCommand(type)), createHelpCommand()];
+  return [
+    ...RED_STAR_TYPES.flatMap((type) => [
+      createRedStarCommand(type),
+      ...levelsOf(type).map((level) => createRedStarLevelCommand(type, level)),
+    ]),
+    createHelpCommand(),
+  ];
 }
 
 export function commandsByName(

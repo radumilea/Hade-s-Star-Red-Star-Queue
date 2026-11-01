@@ -8,9 +8,9 @@ import {
   errorToLog,
   toUserMessage,
 } from '../src/errors.js';
-import { startupFailureSummary } from '../src/index.js';
 import { createShutdown, installProcessHandlers, withTimeout } from '../src/lifecycle.js';
 import { createLogger, createSilentLogger } from '../src/logger.js';
+import { startupFailureSummary } from '../src/startup.js';
 import { apiError } from './fakes.js';
 
 describe('loadConfig', () => {

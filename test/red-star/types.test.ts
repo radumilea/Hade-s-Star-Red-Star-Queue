@@ -4,6 +4,7 @@ import {
   RS_STAR_TYPE,
   isValidRedStarLevel,
   levelRangeText,
+  levelsOf,
 } from '../../src/red-star/types.js';
 
 describe('red star types', () => {
@@ -49,6 +50,11 @@ describe('isValidRedStarLevel', () => {
   test.each([2, 13, 0, -3, 7.5, NaN, Infinity, '7', null, undefined])('rejects %p', (level) => {
     expect(isValidRedStarLevel(level, 'classic')).toBe(false);
     expect(isValidRedStarLevel(level, 'dark')).toBe(false);
+  });
+
+  test('levelsOf lists every level of the type, lowest first', () => {
+    expect(levelsOf('classic')).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(levelsOf('dark')).toEqual([7, 8, 9, 10, 11, 12]);
   });
 
   test('levelRangeText follows the type', () => {
