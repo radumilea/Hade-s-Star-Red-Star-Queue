@@ -1,1 +1,1 @@
-worker: node src/bot.js
+worker: node --enable-source-maps dist/index.js

@@ -1,20 +1,46 @@
 {
   "name": "hades-star-red-star-queue",
-  "version": "0.0.1",
-  "description": "",
-  "main": "bot.js",
+  "version": "1.0.0",
+  "description": "Discord matchmaking bot for Hade's Star Red Star runs",
+  "type": "module",
+  "main": "dist/index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
-    "start": "node ./src/bot.js",
-    "dev": "nodemon ./src/bot.js"
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --enable-source-maps dist/index.js",
+    "deploy-commands": "tsx src/scripts/deploy-commands.ts",
+    "deploy-commands:prod": "node --enable-source-maps dist/scripts/deploy-commands.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.json",
+    "heroku-postbuild": "npm run build"
   },
   "keywords": [],
   "author": "Radu Milea <radu.milea.d@gmail.com>",
-  "license": "BSD 3-Clause 'New' or 'Revised' License",
+  "license": "BSD-3-Clause",
   "dependencies": {
-    "discord.js": "^12.5.1",
-    "dotenv": "^8.2.0"
+    "discord.js": "^14.28.0",
+    "dotenv": "^18.0.9",
+    "pino": "^10.4.0",
+    "pino-pretty": "^13.2.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "nodemon": "^2.0.7"
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^22.20.5",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^10.14.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
   }
 }
